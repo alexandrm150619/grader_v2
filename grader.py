@@ -39,7 +39,7 @@ class Handler(BaseHTTPRequestHandler):
         except JSONDecodeError:
             print('JSONDecodeError, post_body не было загружено должным образом.')
         else:
-            problem_name, hide_answer, student_response, user_id = get_info(body_content)
+            problem_name, hide_answer, zero_grade, student_response, user_id = get_info(body_content)
 
             if hide_answer == "True":
                 hide_answer = True
@@ -47,9 +47,15 @@ class Handler(BaseHTTPRequestHandler):
                 hide_answer = False
             print(hide_answer)
 
+            if zero_grade == "True":
+                zero_grade = True
+            else:
+                zero_grade = False
+            print(zero_grade)
+
             # Выполняем оценку пользоательского ответа на задание
             print_log('User with id {} submitted code for problem {}.'.format(user_id, problem_name))
-            result = grade(problem_name, student_response, hide_answer)
+            result = grade(problem_name, student_response, hide_answer, zero_grade)
 
             # Отправляем ответ XQueue, содержащий результаты проверки
             send = json.dumps(result).encode()
@@ -66,7 +72,7 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """
 
 
-def grade(problem_name, student_response, hide_answer):
+def grade(problem_name, student_response, hide_answer, zero_grade):
     """
     Функция оценки пользовательского решения
 
@@ -138,11 +144,11 @@ def grade(problem_name, student_response, hide_answer):
         result = {'correct':False, 'error': 'Произошла системная ошибка'}          
 
     # Формируем ответ XQueue с результатами проверки
-    result = create_response(result, hide_answer)
+    result = create_response(result, hide_answer, zero_grade)
 
     return result
 
-def create_response(result, hide_answer):
+def create_response(result, hide_answer, zero_grade):
     """ 
     Получает список результатов тестов и создает ответ для XQueue.
     Результты тестирования форматируются HTML кодом.
@@ -244,7 +250,10 @@ def create_response(result, hide_answer):
     out['correct'] = (number_passed == len(result))
 
     # Процент успеха прохождения тестов
-    out['score'] = number_passed / len(result)
+    if zero_grade == True:
+        out['score'] = 0
+    else:
+        out['score'] = number_passed / len(result)
 
     # Результаты тестов в HTML формате
     # start содержит заголовок с общим сообщением и кнопками открытия подробных результатов
@@ -301,7 +310,8 @@ def get_info(json_object):
     student_id = json.loads(json_object['student_info']).get('anonymous_student_id', 'unknown')
     problem_name = grader_payload['problem_name']
     hide_answer = grader_payload['hide_answer']
-    return problem_name, hide_answer, student_response, student_id
+    zero_grade = grader_payload['zero_grade']
+    return problem_name, hide_answer, zero_grade, student_response, student_id
 
 def start(host='localhost', port=1710):
     # Установка рабочей директории
