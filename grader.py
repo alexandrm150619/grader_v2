@@ -255,6 +255,8 @@ def create_response(result, hide_answer, zero_grade):
     else:
         out['score'] = number_passed / len(result)
 
+    print(out['score'])
+
     # Результаты тестов в HTML формате
     # start содержит заголовок с общим сообщением и кнопками открытия подробных результатов
     if any(('error' in res) for res in result):
