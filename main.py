@@ -1,3 +1,3 @@
 from grader import start
-start(host='localhost', port=1710)
+start(host='0.0.0.0', port=1710)
 
